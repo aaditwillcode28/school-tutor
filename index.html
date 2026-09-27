@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TutorSync - Grade 7 Peer Tutoring Network</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+            grade7: {
+              gold: '#f59e0b',
+              light: '#fef3c7',
+              dark: '#b45309'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+    }
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    .grade7-badge-glow {
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.35);
+    }
+    [v-cloak] { display: none; }
+  </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <div id="app" v-cloak class="flex-grow flex flex-col">
+
+    <!-- TOP NAVBAR -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          
+          <!-- Logo & Brand -->
+          <div class="flex items-center gap-3 cursor-pointer" @click="activeTab = 'directory'">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white flex items-center justify-center font-extrabold text-xl shadow-md">
+              7
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-brand-700 to-indigo-600 bg-clip-text text-transparent">TutorSync</span>
+                <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                  <i class="fa-solid fa-award mr-1"></i>Grade 7 Verified
+                </span>
+              </div>
+              <p class="text-xs text-slate-500 font-medium">School Free-Block Peer Network</p>
+            </div>
+          </div>
+
+          <!-- Role Simulation Selector & User Status -->
+          <div class="flex items-center gap-3">
+            
+            <!-- School Domain Status Badge -->
+            <div class="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>@school.edu Authenticated</span>
+            </div>
+
+            <!-- Role Switcher Dropdown -->
+            <div class="relative">
+              <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+                <button 
+                  @click="switchRole('student')" 
+                  :class="currentRole === 'student' ? 'bg-white shadow-sm text-brand-700 font-bold' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                  class="px-3 py-1.5 text-xs rounded-md transition-all flex items-center gap-1.5">
+                  <i class="fa-solid fa-user-graduate"></i>
+                  <span>Student</span>
+                </button>
+
+                <button 
+                  @click="switchRole('tutor')" 
+                  :class="currentRole === 'tutor' ? 'bg-white shadow-sm text-brand-700 font-bold' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                  class="px-3 py-1.5 text-xs rounded-md transition-all flex items-center gap-1.5">
+                  <i class="fa-solid fa-chalkboard-user"></i>
+                  <span>Tutor</span>
+                </button>
+
+                <button 
+                  @click="switchRole('admin')" 
+                  :class="currentRole === 'admin' ? 'bg-white shadow-sm text-brand-700 font-bold' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                  class="px-3 py-1.5 text-xs rounded-md transition-all flex items-center gap-1.5">
+                  <i class="fa-solid fa-shield-halved"></i>
+                  <span>Admin</span>
+                  <span v-if="pendingVerificationsCount > 0" class="bg-amber-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                    {{ pendingVerificationsCount }}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="flex space-x-6 border-t border-slate-100 pt-2 pb-2 text-sm font-medium overflow-x-auto">
+          <button 
+            @click="activeTab = 'directory'" 
+            :class="activeTab === 'directory' ? 'text-brand-600 border-b-2 border-brand-600 font-semibold' : 'text-slate-600 hover:text-slate-900'"
+            class="pb-2 px-1 flex items-center gap-2 whitespace-nowrap">
+            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+            Find Tutors & Free Blocks
+          </button>
+
+          <button 
+            @click="activeTab = 'my-sessions'" 
+            :class="activeTab === 'my-sessions' ? 'text-brand-600 border-b-2 border-brand-600 font-semibold' : 'text-slate-600 hover:text-slate-900'"
+            class="pb-2 px-1 flex items-center gap-2 whitespace-nowrap relative">
+            <i class="fa-solid fa-calendar-check text-xs"></i>
+            My Scheduled Sessions
+            <span v-if="userSessions.length > 0" class="bg-brand-100 text-brand-700 text-xs font-bold px-1.5 py-0.2 rounded-full">
+              {{ userSessions.length }}
+            </span>
+          </button>
+
+          <button 
+            v-if="currentRole === 'tutor' || currentRole === 'admin'"
+            @click="activeTab = 'tutor-portal'" 
+            :class="activeTab === 'tutor-portal' ? 'text-brand-600 border-b-2 border-brand-600 font-semibold' : 'text-slate-600 hover:text-slate-900'"
+            class="pb-2 px-1 flex items-center gap-2 whitespace-nowrap">
+            <i class="fa-solid fa-sliders text-xs"></i>
+            Tutor Dashboard & Block Setup
+          </button>
+
+          <button 
+            v-if="currentRole === 'admin'"
+            @click="activeTab = 'admin-portal'" 
+            :class="activeTab === 'admin-portal' ? 'text-brand-600 border-b-2 border-brand-600 font-semibold' : 'text-slate-600 hover:text-slate-900'"
+            class="pb-2 px-1 flex items-center gap-2 whitespace-nowrap">
+            <i class="fa-solid fa-circle-check text-xs text-amber-500"></i>
+            Grade 7 Verification Queue
+            <span v-if="pendingVerificationsCount > 0" class="bg-amber-500 text-white text-xs font-bold px-1.5 py-0.2 rounded-full">
+              {{ pendingVerificationsCount }}
+            </span>
+          </button>
+        </nav>
+
+      </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+      <!-- ========================================== -->
+      <!-- TAB 1: TUTOR DIRECTORY & FREE BLOCK SEARCH -->
+      <!-- ========================================== -->
+      <section v-if="activeTab === 'directory'" class="space-y-6">
+        
+        <!-- Hero Header -->
+        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+          <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <div class="relative z-10 max-w-3xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold border border-amber-400/30 mb-3">
+              <i class="fa-solid fa-star"></i> High Academic Standard Policy
+            </div>
+            <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight mb-2">
+              Learn from Peer Tutors with a Certified <span class="text-amber-400">Grade 7</span>
+            </h1>
+            <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+              Book free, 1-on-1 peer tutoring during your shared school free blocks. Automated instant Google Calendar sync & room reservation included.
+            </p>
+          </div>
+        </div>
+
+        <!-- Interactive Free Block Timetable Selector -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                <i class="fa-solid fa-clock text-brand-600"></i>
+                Select Your Free Block
+              </h2>
+              <p class="text-xs text-slate-500">Filter tutors who are available during your matching study periods</p>
+            </div>
+            <button 
+              v-if="selectedBlockFilter !== 'all'"
+              @click="selectedBlockFilter = 'all'" 
+              class="text-xs text-brand-600 hover:text-brand-700 font-semibold self-start sm:self-auto">
+              <i class="fa-solid fa-xmark mr-1"></i> Clear Block Filter
+            </button>
+          </div>
+
+          <!-- Free Block Pills -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+            <button 
+              @click="selectedBlockFilter = 'all'"
+              :class="selectedBlockFilter === 'all' ? 'bg-brand-600 text-white border-brand-600 shadow-md' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'"
+              class="p-2.5 rounded-xl border text-left transition-all text-xs font-medium">
+              <div class="font-bold">All Blocks</div>
+              <div class="text-[10px] opacity-80">Show All Tutors</div>
+            </button>
+
+            <button 
+              v-for="block in schoolBlocks" 
+              :key="block.id"
+              @click="selectedBlockFilter = block.id"
+              :class="selectedBlockFilter === block.id ? 'bg-brand-600 text-white border-brand-600 shadow-md' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'"
+              class="p-2.5 rounded-xl border text-left transition-all text-xs">
+              <div class="font-bold flex items-center justify-between">
+                <span>{{ block.name }}</span>
+                <span class="text-[9px] px-1.5 py-0.2 rounded bg-white/20 font-mono">{{ getTutorCountForBlock(block.id) }}</span>
+              </div>
+              <div class="text-[10px] opacity-80 font-mono mt-0.5">{{ block.time }}</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- SEARCH AND SUBJECT FILTERS -->
+        <div class="flex flex-col sm:flex-row gap-3">
+          <!-- Text Search -->
+          <div class="relative flex-grow">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+            <input 
+              v-model="searchQuery" 
+              type="text" 
+              placeholder="Search by subject name, tutor name, or topic (e.g., Calculus, IB Physics)..."
+              class="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+          </div>
+
+          <!-- Subject Dropdown Filter -->
+          <select 
+            v-model="selectedSubjectFilter"
+            class="px-4 py-2.5 bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-medium text-slate-700">
+            <option value="all">All Subjects (IB / AP / High School)</option>
+            <option v-for="subj in availableSubjects" :key="subj" :value="subj">{{ subj }}</option>
+          </select>
+        </div>
+
+        <!-- TUTOR CARDS GRID -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div 
+            v-for="tutor in filteredTutors" 
+            :key="tutor.id"
+            class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden relative group">
+            
+            <!-- Tutor Card Header -->
+            <div class="p-5">
+              <div class="flex items-start justify-between gap-3 mb-3">
+                
+                <!-- Avatar & Details -->
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 to-brand-600 text-white font-bold text-lg flex items-center justify-center shadow">
+                    {{ tutor.avatarInitials }}
+                  </div>
+                  <div>
+                    <h3 class="font-bold text-slate-900 text-base flex items-center gap-1.5">
+                      {{ tutor.name }}
+                    </h3>
+                    <p class="text-xs text-slate-500">Grade {{ tutor.gradeLevel }} • Student ID: {{ tutor.studentId }}</p>
+                  </div>
+                </div>
+
+                <!-- Rating -->
+                <div class="flex items-center gap-1 bg-amber-50 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full border border-amber-200">
+                  <i class="fa-solid fa-star text-amber-500"></i>
+                  <span>{{ tutor.rating }}</span>
+                  <span class="text-amber-600/70 font-normal">({{ tutor.reviewCount }})</span>
+                </div>
+              </div>
+
+              <!-- Tutor Bio -->
+              <p class="text-xs text-slate-600 line-clamp-2 mb-4 leading-relaxed">
+                "{{ tutor.bio }}"
+              </p>
+
+              <!-- Verified Grade 7 Subjects Section -->
+              <div class="mb-4">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                  Verified Grade 7 Subjects
+                </span>
+                <div class="flex flex-wrap gap-1.5">
+                  <span 
+                    v-for="subj in tutor.verifiedSubjects" 
+                    :key="subj.name"
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 text-xs font-semibold">
+                    <i class="fa-solid fa-shield-check text-amber-600"></i>
+                    {{ subj.name }}
+                    <span class="text-[10px] text-amber-700 bg-amber-200/60 px-1 rounded">Score 7</span>
+                  </span>
+                </div>
+                <p v-if="tutor.teacherSponsor" class="text-[11px] text-slate-500 mt-1 italic">
+                  <i class="fa-solid fa-user-check text-slate-400 mr-1"></i>Sponsoring Teacher: {{ tutor.teacherSponsor }}
+                </p>
+              </div>
+
+              <!-- Weekly Free Blocks List -->
+              <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                  Available Free Blocks
+                </span>
+                <div class="flex flex-wrap gap-1.5">
+                  <span 
+                    v-for="blockId in tutor.freeBlocks" 
+                    :key="blockId"
+                    :class="selectedBlockFilter === blockId ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-700'"
+                    class="px-2 py-0.5 rounded-md text-[11px] font-medium font-mono border border-slate-200">
+                    {{ getBlockName(blockId) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Action Footer -->
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+              <!-- Google Appointment Link (if tutor has set one up) -->
+              <a 
+                v-if="tutor.googleAppointmentUrl" 
+                :href="tutor.googleAppointmentUrl" 
+                target="_blank"
+                title="View tutor's custom Google Calendar Appointment Schedule"
+                class="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-all flex items-center gap-1">
+                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                Appt Page
+              </a>
+
+              <button 
+                @click="openBookingModal(tutor)"
+                class="flex-grow py-2 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all shadow-sm hover:shadow flex items-center justify-center gap-2">
+                <i class="fa-solid fa-calendar-plus"></i>
+                Book Free Session
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div v-if="filteredTutors.length === 0" class="text-center py-16 bg-white rounded-2xl border border-slate-200 p-8">
+          <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+            <i class="fa-solid fa-user-slash"></i>
+          </div>
+          <h3 class="font-bold text-slate-800 text-base">No Peer Tutors Found</h3>
+          <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+            There are no tutors matching your selected free block or subject query right now. Try clearing filters.
+          </p>
+          <button @click="resetFilters" class="mt-4 px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold">
+            Reset Filters
+          </button>
+        </div>
+
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 2: STUDENT DASHBOARD (MY SESSIONS)     -->
+      <!-- ========================================== -->
+      <section v-if="activeTab === 'my-sessions'" class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 class="text-2xl font-bold text-slate-900">My Scheduled Sessions</h1>
+            <p class="text-xs text-slate-500">Manage upcoming peer tutoring appointments and sync directly to Google Calendar</p>
+          </div>
+          <button @click="activeTab = 'directory'" class="px-4 py-2 bg-brand-600 text-white text-xs font-bold rounded-xl shadow hover:bg-brand-700">
+            <i class="fa-solid fa-plus mr-1"></i> Book New Tutor
+          </button>
+        </div>
+
+        <!-- Sessions List -->
+        <div v-if="userSessions.length > 0" class="space-y-4">
+          <div 
+            v-for="session in userSessions" 
+            :key="session.id"
+            class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-brand-50 border border-brand-100 text-brand-600 flex flex-col items-center justify-center font-bold shrink-0">
+                <i class="fa-solid fa-calendar-day text-lg"></i>
+              </div>
+
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold text-slate-900 text-base">{{ session.subject }}</span>
+                  <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    Confirmed
+                  </span>
+                </div>
+                
+                <p class="text-xs text-slate-600">
+                  <i class="fa-solid fa-user-circle text-slate-400 mr-1"></i>
+                  Tutor: <strong class="text-slate-800">{{ session.tutorName }}</strong>
+                </p>
+
+                <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-2 font-mono">
+                  <span><i class="fa-regular fa-clock text-brand-600 mr-1"></i>{{ session.blockName }}</span>
+                  <span><i class="fa-solid fa-calendar-days text-brand-600 mr-1"></i>{{ session.date }}</span>
+                  <span><i class="fa-solid fa-location-dot text-brand-600 mr-1"></i>{{ session.location }}</span>
+                </div>
+
+                <p v-if="session.topic" class="text-xs text-slate-500 bg-slate-50 p-2 rounded-lg mt-2 italic border border-slate-100">
+                  Notes: "{{ session.topic }}"
+                </p>
+              </div>
+            </div>
+
+            <!-- Google Calendar Sync & Actions -->
+            <div class="flex flex-wrap md:flex-col items-stretch gap-2 w-full md:w-auto shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+              
+              <!-- Direct Google Calendar Link Button -->
+              <a 
+                :href="generateGoogleCalendarUrl(session)" 
+                target="_blank"
+                class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                <i class="fa-brands fa-google"></i>
+                Sync Google Calendar
+              </a>
+
+              <!-- ICS File Download Button -->
+              <button 
+                @click="downloadIcsFile(session)"
+                class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-slate-200">
+                <i class="fa-solid fa-download"></i>
+                Download .ICS File
+              </button>
+
+              <!-- Cancel Booking Button -->
+              <button 
+                @click="cancelSession(session.id)"
+                class="px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-lg transition-all text-center">
+                Cancel Session
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Empty Bookings State -->
+        <div v-else class="text-center py-16 bg-white rounded-2xl border border-slate-200 p-8">
+          <div class="w-16 h-16 bg-brand-50 text-brand-500 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+            <i class="fa-regular fa-calendar-xmark"></i>
+          </div>
+          <h3 class="font-bold text-slate-800 text-base">No Scheduled Tutoring Sessions</h3>
+          <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+            You haven't booked any free block peer sessions yet. Browse available Grade 7 tutors to get started!
+          </p>
+          <button @click="activeTab = 'directory'" class="mt-4 px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold">
+            Explore Grade 7 Tutors
+          </button>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 3: TUTOR MANAGEMENT PORTAL             -->
+      <!-- ========================================== -->
+      <section v-if="activeTab === 'tutor-portal'" class="space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+            <div>
+              <h2 class="text-xl font-bold text-slate-900">Tutor Availability & Grade 7 Verification</h2>
+              <p class="text-xs text-slate-500">Configure your weekly recurring free blocks and apply for new subject certifications</p>
+            </div>
+            <span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full border border-amber-300">
+              <i class="fa-solid fa-award mr-1"></i>Active Peer Tutor Profile
+            </span>
+          </div>
+
+          <!-- Weekly Free Block Toggle Matrix -->
+          <div class="mb-8">
+            <h3 class="font-bold text-slate-800 text-sm mb-2 flex items-center gap-2">
+              <i class="fa-solid fa-calendar-week text-brand-600"></i>
+              My Free Block Weekly Schedule
+            </h3>
+            <p class="text-xs text-slate-500 mb-3">Select the standard school timetable blocks when you are free to tutor fellow students:</p>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+              <div 
+                v-for="block in schoolBlocks" 
+                :key="block.id"
+                @click="toggleTutorBlock(block.id)"
+                :class="activeTutor.freeBlocks.includes(block.id) ? 'bg-brand-50 border-brand-500 text-brand-900 ring-2 ring-brand-500/20' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'"
+                class="p-3 rounded-xl border cursor-pointer transition-all">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="font-bold text-xs">{{ block.name }}</span>
+                  <i :class="activeTutor.freeBlocks.includes(block.id) ? 'fa-solid fa-circle-check text-brand-600' : 'fa-regular fa-circle text-slate-300'"></i>
+                </div>
+                <div class="text-[10px] font-mono text-slate-500">{{ block.time }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Apply for New Subject Grade 7 Certification Form -->
+          <div class="bg-gradient-to-br from-amber-50/50 to-orange-50/30 rounded-xl border border-amber-200/80 p-5">
+            <h3 class="font-bold text-amber-950 text-sm mb-1 flex items-center gap-2">
+              <i class="fa-solid fa-file-certificate text-amber-600"></i>
+              Apply to Teach a New Subject (Grade 7 Gatekeeper)
+            </h3>
+            <p class="text-xs text-amber-800/80 mb-4">
+              To guarantee top peer quality, tutors must prove a Grade 7 score in the subject. Admin approval is required.
+            </p>
+
+            <form @submit.prevent="submitGrade7Verification" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Subject</label>
+                <select v-model="newVerificationForm.subject" required class="w-full p-2.5 bg-white rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500">
+                  <option value="" disabled>Select Subject</option>
+                  <option v-for="subj in availableSubjects" :key="subj" :value="subj">{{ subj }}</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Sponsoring Teacher</label>
+                <input v-model="newVerificationForm.teacher" type="text" placeholder="e.g. Dr. Aris / Mr. Vance" required class="w-full p-2.5 bg-white rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500">
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Transcript Proof (PDF/Img)</label>
+                <input type="file" @change="handleFileUpload" class="w-full p-1.5 bg-white rounded-lg border border-slate-200 text-xs text-slate-600">
+              </div>
+
+              <div class="sm:col-span-3 flex justify-end mt-2">
+                <button type="submit" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-2">
+                  <i class="fa-solid fa-paper-plane"></i>
+                  Submit Transcript for Admin Approval
+                </button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 4: SCHOOL ADMIN VERIFICATION PORTAL   -->
+      <!-- ========================================== -->
+      <section v-if="activeTab === 'admin-portal'" class="space-y-6">
+        
+        <!-- Metrics Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs text-slate-500 font-medium">Pending Grade 7 Approvals</span>
+            <div class="text-2xl font-extrabold text-amber-600 mt-1">{{ pendingVerificationsCount }}</div>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs text-slate-500 font-medium">Active Peer Tutors</span>
+            <div class="text-2xl font-extrabold text-brand-600 mt-1">{{ tutors.length }}</div>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs text-slate-500 font-medium">Total Sessions Booked</span>
+            <div class="text-2xl font-extrabold text-emerald-600 mt-1">{{ userSessions.length + 18 }}</div>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs text-slate-500 font-medium">School Domain Enforcement</span>
+            <div class="text-sm font-bold text-slate-800 mt-2 flex items-center gap-1.5">
+              <i class="fa-solid fa-lock text-emerald-500"></i> @school.edu Active
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending Verification Queue Table -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h2 class="font-bold text-slate-900 text-base">Grade 7 Transcript Approval Queue</h2>
+              <p class="text-xs text-slate-500">Review teacher confirmations and grade transcripts submitted by prospective tutors</p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+                <tr>
+                  <th class="p-3.5">Tutor Name</th>
+                  <th class="p-3.5">Claimed Subject</th>
+                  <th class="p-3.5">Teacher Sponsor</th>
+                  <th class="p-3.5">Attached Document</th>
+                  <th class="p-3.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr v-for="req in pendingVerifications" :key="req.id" class="hover:bg-slate-50/50">
+                  <td class="p-3.5 font-bold text-slate-900">
+                    {{ req.tutorName }}
+                    <span class="block text-[10px] text-slate-400 font-normal">{{ req.tutorEmail }}</span>
+                  </td>
+                  <td class="p-3.5">
+                    <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 font-semibold">
+                      {{ req.subject }} (Grade 7)
+                    </span>
+                  </td>
+                  <td class="p-3.5 text-slate-600">{{ req.teacherSponsor }}</td>
+                  <td class="p-3.5 text-brand-600 font-mono">
+                    <i class="fa-solid fa-file-pdf mr-1"></i>{{ req.fileName }}
+                  </td>
+                  <td class="p-3.5 text-right space-x-2">
+                    <button 
+                      @click="approveVerification(req)" 
+                      class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold">
+                      <i class="fa-solid fa-check mr-1"></i> Approve
+                    </button>
+                    <button 
+                      @click="rejectVerification(req.id)" 
+                      class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-medium">
+                      Reject
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="pendingVerifications.length === 0">
+                  <td colspan="5" class="p-8 text-center text-slate-400">
+                    No pending Grade 7 verification claims right now.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- BOOKING MODAL -->
+    <div v-if="showBookingModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in duration-150">
+        
+        <!-- Close Button -->
+        <button @click="showBookingModal = false" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+
+        <!-- Header -->
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-calendar-plus text-lg"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">Book Session with {{ targetTutor?.name }}</h3>
+            <p class="text-xs text-slate-500">Grade 7 Peer Tutoring Session</p>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <form @submit.prevent="confirmBooking" class="space-y-4">
+          
+          <!-- Subject Selector -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Select Subject</label>
+            <select v-model="bookingForm.subject" required class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-brand-500">
+              <option v-for="subj in targetTutor?.verifiedSubjects" :key="subj.name" :value="subj.name">
+                {{ subj.name }} (Verified Grade 7)
+              </option>
+            </select>
+          </div>
+
+          <!-- Free Block Selector -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Matching School Free Block</label>
+            <select v-model="bookingForm.blockId" required class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-brand-500">
+              <option v-for="bId in targetTutor?.freeBlocks" :key="bId" :value="bId">
+                {{ getBlockName(bId) }} ({{ getBlockTime(bId) }})
+              </option>
+            </select>
+          </div>
+
+          <!-- Date Selector -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Target Date</label>
+            <input v-model="bookingForm.date" type="date" required class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500">
+          </div>
+
+          <!-- Student Topic Notes -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Topic / Exam Questions to Cover</label>
+            <textarea v-model="bookingForm.topic" placeholder="e.g. Help with Integration by parts & practice question #4..." rows="2" class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500"></textarea>
+          </div>
+
+          <!-- Google Calendar Integration Notice -->
+          <div class="p-3 bg-indigo-50 rounded-xl text-[11px] text-indigo-900 border border-indigo-100 flex items-start gap-2">
+            <i class="fa-brands fa-google text-indigo-600 mt-0.5 text-sm"></i>
+            <div>
+              <strong>Instant Google Calendar Creation:</strong> Confirming generates a direct link to save the event on both your calendar and {{ targetTutor?.name }}'s calendar.
+            </div>
+          </div>
+
+          <!-- Modal Actions -->
+          <div class="flex items-center justify-end gap-2 pt-2">
+            <button type="button" @click="showBookingModal = false" class="px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl text-xs font-bold">
+              Cancel
+            </button>
+            <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md">
+              Confirm & Generate Calendar Link
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION BANNER -->
+    <div 
+      v-if="toast.show" 
+      class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-xs font-medium border border-slate-800 animate-in slide-in-from-bottom-5">
+      <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+      <span>{{ toast.message }}</span>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
+      <p>TutorSync &copy; Grade 7 School Peer Tutoring Network • Automated Google Calendar Integration Engine</p>
+    </footer>
+
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted, watch } = Vue;
+
+    createApp({
+      setup() {
+        const currentRole = ref('student'); // 'student' | 'tutor' | 'admin'
+        const activeTab = ref('directory'); // 'directory' | 'my-sessions' | 'tutor-portal' | 'admin-portal'
+
+        // Timetable Free Blocks Config
+        const schoolBlocks = ref([
+          { id: 'blockA', name: 'Period 1 (Block A)', time: 'Mon/Wed 08:30 - 09:45' },
+          { id: 'blockB', name: 'Period 2 (Block B)', time: 'Mon/Wed 10:00 - 11:15' },
+          { id: 'blockC', name: 'Period 3 (Block C)', time: 'Tue/Thu 08:30 - 09:45' },
+          { id: 'blockD', name: 'Period 4 (Block D)', time: 'Tue/Thu 10:00 - 11:15' },
+          { id: 'lunch',  name: 'Lunch Block',        time: 'Mon-Fri 11:45 - 12:45' },
+          { id: 'blockE', name: 'Period 5 (Block E)', time: 'Mon/Wed 13:15 - 14:30' }
+        ]);
+
+        const availableSubjects = [
+          'IB Math Analysis HL',
+          'IB Math Applications SL',
+          'IB Physics HL',
+          'IB Chemistry HL',
+          'IB Biology HL',
+          'IB Economics HL',
+          'IB Computer Science HL',
+          'English Literature A HL',
+          'Psychology SL'
+        ];
+
+        // Default Mock Tutors
+        const defaultTutors = [
+          {
+            id: 'tut-1',
+            name: 'Alex Rivera',
+            gradeLevel: '12',
+            studentId: '2025-014',
+            avatarInitials: 'AR',
+            bio: 'Predicted 44/45. Passionate about breaking down complex HL Math calculus proofs and Physics kinematics.',
+            rating: 4.9,
+            reviewCount: 18,
+            teacherSponsor: 'Dr. Aris (Math Dept Head)',
+            googleAppointmentUrl: 'https://calendar.google.com/calendar/u/0/appointments/schedules/',
+            verifiedSubjects: [
+              { name: 'IB Math Analysis HL', score: 7 },
+              { name: 'IB Physics HL', score: 7 }
+            ],
+            freeBlocks: ['blockA', 'lunch', 'blockD']
+          },
+          {
+            id: 'tut-2',
+            name: 'Sophia Chen',
+            gradeLevel: '12',
+            studentId: '2025-089',
+            avatarInitials: 'SC',
+            bio: 'Grade 7 in Chemistry HL and Biology. Happy to review stoichiometry, organic reaction mechanisms, and lab reports.',
+            rating: 5.0,
+            reviewCount: 24,
+            teacherSponsor: 'Ms. Vance (Chemistry)',
+            googleAppointmentUrl: '',
+            verifiedSubjects: [
+              { name: 'IB Chemistry HL', score: 7 },
+              { name: 'IB Biology HL', score: 7 }
+            ],
+            freeBlocks: ['blockB', 'blockD', 'lunch']
+          },
+          {
+            id: 'tut-3',
+            name: 'Marcus Vance',
+            gradeLevel: '11',
+            studentId: '2026-102',
+            avatarInitials: 'MV',
+            bio: 'Grade 7 scorer in Economics and CS. Can assist with micro/macro diagrams, coding algorithms, and internal assessments.',
+            rating: 4.8,
+            reviewCount: 12,
+            teacherSponsor: 'Mr. Harrison (Economics)',
+            googleAppointmentUrl: '',
+            verifiedSubjects: [
+              { name: 'IB Economics HL', score: 7 },
+              { name: 'IB Computer Science HL', score: 7 }
+            ],
+            freeBlocks: ['blockC', 'lunch', 'blockE']
+          }
+        ];
+
+        const tutors = ref(defaultTutors);
+
+        // Verification Claim Requests for Admin Queue
+        const defaultVerifications = [
+          {
+            id: 'req-1',
+            tutorName: 'Elena Rostova',
+            tutorEmail: 'elena.rostova@school.edu',
+            subject: 'English Literature A HL',
+            teacherSponsor: 'Mrs. Gable',
+            fileName: 'Official_Transcript_Grade7_Lit.pdf'
+          }
+        ];
+        const pendingVerifications = ref(defaultVerifications);
+
+        // Scheduled User Sessions
+        const userSessions = ref([]);
+
+        // Search & Filter state
+        const searchQuery = ref('');
+        const selectedSubjectFilter = ref('all');
+        const selectedBlockFilter = ref('all');
+
+        // Modal State
+        const showBookingModal = ref(false);
+        const targetTutor = ref(null);
+        const bookingForm = ref({
+          subject: '',
+          blockId: '',
+          date: '',
+          topic: ''
+        });
+
+        // Verification Form State (Tutor applying)
+        const newVerificationForm = ref({
+          subject: '',
+          teacher: '',
+          file: null
+        });
+
+        // Toast alert state
+        const toast = ref({ show: false, message: '' });
+
+        const activeTutor = computed(() => tutors.value[0]);
+
+        const pendingVerificationsCount = computed(() => pendingVerifications.value.length);
+
+        const filteredTutors = computed(() => {
+          return tutors.value.filter(tutor => {
+            // Subject filter check
+            const matchesSubject = selectedSubjectFilter.value === 'all' ||
+              tutor.verifiedSubjects.some(s => s.name === selectedSubjectFilter.value);
+
+            // Block filter check
+            const matchesBlock = selectedBlockFilter.value === 'all' ||
+              tutor.freeBlocks.includes(selectedBlockFilter.value);
+
+            // Text Query match check
+            const query = searchQuery.value.toLowerCase();
+            const matchesQuery = !query || 
+              tutor.name.toLowerCase().includes(query) ||
+              tutor.verifiedSubjects.some(s => s.name.toLowerCase().includes(query)) ||
+              tutor.bio.toLowerCase().includes(query);
+
+            return matchesSubject && matchesBlock && matchesQuery;
+          });
+        });
+
+        onMounted(() => {
+          const savedTutors = localStorage.getItem('tutorSync_tutors');
+          if (savedTutors) tutors.value = JSON.parse(savedTutors);
+
+          const savedSessions = localStorage.getItem('tutorSync_sessions');
+          if (savedSessions) userSessions.value = JSON.parse(savedSessions);
+
+          const savedRequests = localStorage.getItem('tutorSync_requests');
+          if (savedRequests) pendingVerifications.value = JSON.parse(savedRequests);
+        });
+
+        watch([tutors, userSessions, pendingVerifications], () => {
+          localStorage.setItem('tutorSync_tutors', JSON.stringify(tutors.value));
+          localStorage.setItem('tutorSync_sessions', JSON.stringify(userSessions.value));
+          localStorage.setItem('tutorSync_requests', JSON.stringify(pendingVerifications.value));
+        }, { deep: true });
+
+        // Helper methods
+        const showToast = (message) => {
+          toast.value.message = message;
+          toast.value.show = true;
+          setTimeout(() => { toast.value.show = false; }, 3500);
+        };
+
+        const switchRole = (role) => {
+          currentRole.value = role;
+          if (role === 'admin') activeTab.value = 'admin-portal';
+          if (role === 'tutor') activeTab.value = 'tutor-portal';
+          if (role === 'student') activeTab.value = 'directory';
+          showToast(`Switched active view to ${role.toUpperCase()} mode.`);
+        };
+
+        const getBlockName = (blockId) => {
+          const found = schoolBlocks.value.find(b => b.id === blockId);
+          return found ? found.name : blockId;
+        };
+
+        const getBlockTime = (blockId) => {
+          const found = schoolBlocks.value.find(b => b.id === blockId);
+          return found ? found.time : '';
+        };
+
+        const getTutorCountForBlock = (blockId) => {
+          return tutors.value.filter(t => t.freeBlocks.includes(blockId)).length;
+        };
+
+        const resetFilters = () => {
+          searchQuery.value = '';
+          selectedSubjectFilter.value = 'all';
+          selectedBlockFilter.value = 'all';
+        };
+
+        // Google Calendar Event Link Builder
+        const generateGoogleCalendarUrl = (session) => {
+          const title = `TutorSync: ${session.subject} Peer Session with ${session.tutorName}`;
+          const details = `Peer Tutoring Session via TutorSync Grade 7 Network.\n\nTutor: ${session.tutorName}\nStudent: Jordan Smith\nSubject: ${session.subject}\nTopic Notes: ${session.topic || 'N/A'}\nLocation: School Library Room 3 / Google Meet`;
+          const location = `School Library Study Room 3 / Google Meet`;
+          
+          // Generate mock start/end ISO strings based on date
+          const dateClean = session.date ? session.date.replace(/-/g, '') : '20261005';
+          const dtStart = `${dateClean}T083000Z`;
+          const dtEnd = `${dateClean}T094500Z`;
+
+          return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${dtStart}/${dtEnd}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+        };
+
+        // .ICS iCalendar File Generator
+        const downloadIcsFile = (session) => {
+          const title = `TutorSync: ${session.subject} Session`;
+          const details = `Peer session with ${session.tutorName}. Topic: ${session.topic || 'General Review'}`;
+          const dateClean = session.date ? session.date.replace(/-/g, '') : '20261005';
+
+          const icsData = 
+`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//TutorSync Grade7 Peer Network//EN
+BEGIN:VEVENT
+SUMMARY:${title}
+DESCRIPTION:${details}
+LOCATION:School Library Study Room 3
+DTSTART:${dateClean}T083000Z
+DTEND:${dateClean}T094500Z
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR`;
+
+          const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
+          const link = document.createElement('a');
+          link.href = window.URL.createObjectURL(blob);
+          link.setAttribute('download', `TutorSync_${session.subject.replace(/\s+/g, '_')}.ics`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          showToast('.ICS Calendar file downloaded successfully!');
+        };
+
+        const openBookingModal = (tutor) => {
+          targetTutor.value = tutor;
+          bookingForm.value.subject = tutor.verifiedSubjects[0]?.name || '';
+          bookingForm.value.blockId = tutor.freeBlocks[0] || 'blockA';
+          bookingForm.value.date = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+          bookingForm.value.topic = '';
+          showBookingModal.value = true;
+        };
+
+        const confirmBooking = () => {
+          const newSession = {
+            id: 'sess-' + Date.now(),
+            tutorName: targetTutor.value.name,
+            tutorId: targetTutor.value.id,
+            subject: bookingForm.value.subject,
+            blockName: getBlockName(bookingForm.value.blockId),
+            date: bookingForm.value.date,
+            location: 'School Library Study Room 3',
+            topic: bookingForm.value.topic
+          };
+
+          userSessions.value.unshift(newSession);
+          showBookingModal.value = false;
+          activeTab.value = 'my-sessions';
+          showToast(`Session with ${targetTutor.value.name} confirmed! Opening calendar options.`);
+        };
+
+        const cancelSession = (sessionId) => {
+          userSessions.value = userSessions.value.filter(s => s.id !== sessionId);
+          showToast('Tutoring session cancelled.');
+        };
+
+        const toggleTutorBlock = (blockId) => {
+          const index = activeTutor.value.freeBlocks.indexOf(blockId);
+          if (index > -1) {
+            activeTutor.value.freeBlocks.splice(index, 1);
+          } else {
+            activeTutor.value.freeBlocks.push(blockId);
+          }
+          showToast('Updated weekly free block schedule.');
+        };
+
+        const handleFileUpload = (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            newVerificationForm.value.file = file.name;
+          }
+        };
+
+        const submitGrade7Verification = () => {
+          const newReq = {
+            id: 'req-' + Date.now(),
+            tutorName: activeTutor.value.name,
+            tutorEmail: 'alex.rivera@school.edu',
+            subject: newVerificationForm.value.subject,
+            teacherSponsor: newVerificationForm.value.teacher,
+            fileName: newVerificationForm.value.file || 'Transcript_Grade7_Proof.pdf'
+          };
+
+          pendingVerifications.value.push(newReq);
+          newVerificationForm.value.subject = '';
+          newVerificationForm.value.teacher = '';
+          showToast('Verification submitted for School Admin review!');
+        };
+
+        const approveVerification = (req) => {
+          // Add subject to tutor if tutor exists
+          const tutor = tutors.value.find(t => t.name === req.tutorName);
+          if (tutor) {
+            if (!tutor.verifiedSubjects.some(s => s.name === req.subject)) {
+              tutor.verifiedSubjects.push({ name: req.subject, score: 7 });
+            }
+          }
+          pendingVerifications.value = pendingVerifications.value.filter(r => r.id !== req.id);
+          showToast(`Approved Grade 7 status for ${req.tutorName} in ${req.subject}!`);
+        };
+
+        const rejectVerification = (reqId) => {
+          pendingVerifications.value = pendingVerifications.value.filter(r => r.id !== reqId);
+          showToast('Verification claim rejected.');
+        };
+
+        return {
+          currentRole,
+          activeTab,
+          schoolBlocks,
+          availableSubjects,
+          tutors,
+          activeTutor,
+          pendingVerifications,
+          pendingVerificationsCount,
+          userSessions,
+          searchQuery,
+          selectedSubjectFilter,
+          selectedBlockFilter,
+          filteredTutors,
+          showBookingModal,
+          targetTutor,
+          bookingForm,
+          newVerificationForm,
+          toast,
+          switchRole,
+          getBlockName,
+          getBlockTime,
+          getTutorCountForBlock,
+          resetFilters,
+          generateGoogleCalendarUrl,
+          downloadIcsFile,
+          openBookingModal,
+          confirmBooking,
+          cancelSession,
+          toggleTutorBlock,
+          handleFileUpload,
+          submitGrade7Verification,
+          approveVerification,
+          rejectVerification
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
